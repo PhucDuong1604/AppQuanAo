@@ -1,3 +1,4 @@
+import 'package:appquanao/Models/user_session.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:appquanao/providers/cart_provider.dart';
@@ -5,7 +6,14 @@ import 'package:appquanao/providers/order_provider.dart'; // Thêm import này
 import 'package:appquanao/screens/welcome_page.dart'; // Giả định đây là màn hình chính của bạn
 
 void main() {
-  runApp(const MyApp());
+  runApp(  // Sử dụng MultiProvider để cung cấp nhiều Provider
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => UserSession()),
+        ChangeNotifierProvider(create: (context) => CartProvider()), // <<< THÊM DÒNG NÀY
+      ],
+      child: const MyApp(),
+    ),);
 }
 
 class MyApp extends StatelessWidget {
