@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // <--- Thêm import này
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../models/cart_item.dart'; // Đảm bảo đường dẫn đúng đến CartItem model
 import '../models/product.dart'; // Đảm bảo đường dẫn đúng đến Product model (nếu cần)
 import '../providers/cart_provider.dart'; // Đảm bảo đường dẫn đúng đến CartProvider
-import 'momo_payment_screen.dart'; // <--- Thêm import cho MomoPaymentScreen
+import 'momo_payment_screen.dart'; // Thêm import cho MomoPaymentScreen
 
 enum PaymentMethod { cod, momo }
 
@@ -30,29 +30,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     decimalDigits: 0,
   );
 
-  // Hàm trợ giúp để lấy tên màu từ đối tượng Color
-  String _getColorName(Color color) {
-    if (color == Colors.transparent) return 'Không màu';
-    if (color == Colors.red) return 'Đỏ';
-    if (color == Colors.blue) return 'Xanh dương';
-    if (color == Colors.green) return 'Xanh lá';
-    if (color == Colors.black) return 'Đen';
-    if (color == Colors.white) return 'Trắng';
-    if (color == Colors.grey) return 'Xám';
-    if (color == Colors.yellow) return 'Vàng';
-    if (color == Colors.orange) return 'Cam';
-    if (color == Colors.purple) return 'Tím';
-    if (color == Colors.pink) return 'Hồng';
-    if (color == Colors.brown) return 'Nâu';
-    if (color == Colors.cyan) return 'Xanh lơ';
-    if (color == Colors.indigo) return 'Chàm';
-    if (color == Colors.lime) return 'Xanh nõn chuối';
-    if (color == Colors.amber) return 'Hổ phách';
-    // Mở rộng thêm các màu khác nếu cần
-
-    // Mặc định hiển thị mã hex nếu không tìm thấy tên màu
-    return '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
-  }
+  // XÓA BỎ HOÀN TOÀN HÀM _getColorName(Color color) VÌ item.selectedColor đã là String
+  // Hoặc nếu bạn muốn ánh xạ chuỗi màu từ DB thành tên hiển thị, bạn có thể sửa lại hàm này
+  // Nhưng trong hầu hết các trường hợp, item.selectedColor đã đủ để hiển thị.
 
   @override
   Widget build(BuildContext context) {
@@ -104,9 +84,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: (item.product.imageUrl != null && item.product.imageUrl!.isNotEmpty)
+                        // SỬA LẠI ĐIỀU KIỆN KIỂM TRA imageUrl CHO AN TOÀN
+                        child: item.product.imageUrl.isNotEmpty
                             ? Image.network(
-                                item.product.imageUrl!,
+                                item.product.imageUrl, // Bỏ ! nếu imageUrl không phải là String?
                                 width: 50,
                                 height: 50,
                                 fit: BoxFit.cover,
@@ -115,7 +96,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                     width: 50,
                                     height: 50,
                                     color: Colors.grey[200],
-                                    child: Icon(Icons.image_not_supported, color: Colors.grey[400]),
+                                    child: const Icon(Icons.image_not_supported, color: Colors.grey),
                                   );
                                 },
                               )
@@ -123,7 +104,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 width: 50,
                                 height: 50,
                                 color: Colors.grey[200],
-                                child: Icon(Icons.image_not_supported, color: Colors.grey[400]),
+                                child: const Icon(Icons.image_not_supported, color: Colors.grey),
                               ),
                       ),
                       const SizedBox(width: 12),
@@ -138,7 +119,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               overflow: TextOverflow.ellipsis,
                             ),
                             Text(
-                                'Số lượng: ${item.quantity} - Size: ${item.selectedSize} - Màu: ${_getColorName(item.selectedColor)}'),
+                              // SỬA LỖI MÀU SẮC: DÙNG TRỰC TIẾP item.selectedColor (là String)
+                              'Số lượng: ${item.quantity} - Size: ${item.selectedSize} - Màu: ${item.selectedColor}',
+                            ),
                             Text(
                               currencyFormatter.format(item.product.price * item.quantity),
                               style: const TextStyle(color: Colors.red),
@@ -159,27 +142,27 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Phí giao hàng:'),
+                const Text('Phí giao hàng:'),
                 Text(currencyFormatter.format(shippingFee)),
               ],
             ),
             if (subtotal < 300000)
               Text(
                 '(Miễn phí với đơn hàng trên ${currencyFormatter.format(300000)})',
-                style: TextStyle(color: Colors.green, fontSize: 12),
+                style: const TextStyle(color: Colors.green, fontSize: 12),
               ),
             const SizedBox(height: 8),
             // Tổng tiền
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
+                const Text(
                   'Tổng:',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                 ),
                 Text(
                   currencyFormatter.format(totalAmount),
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.red),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.red),
                 ),
               ],
             ),
@@ -210,7 +193,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     decoration: const InputDecoration(labelText: 'Điện thoại liên lạc'),
                     keyboardType: TextInputType.phone,
                     onChanged: (value) => _recipientPhone = value,
-                    // <--- THAY ĐỔI TẠI ĐÂY --->
                     inputFormatters: [
                       LengthLimitingTextInputFormatter(10), // Giới hạn tối đa 10 ký tự
                       FilteringTextInputFormatter.digitsOnly, // Chỉ cho phép nhập số
@@ -226,7 +208,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       }
                       return null;
                     },
-                    // <--- KẾT THÚC THAY ĐỔI --->
                   ),
                   const SizedBox(height: 10),
                   TextFormField(
@@ -286,7 +267,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     ? null
                     : () {
                         if (_formKey.currentState!.validate()) {
-                          // Điều hướng đến MomoPaymentScreen nếu chọn MoMo
                           if (_selectedPaymentMethod == PaymentMethod.momo) {
                             Navigator.push(
                               context,
@@ -294,9 +274,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 builder: (context) => MomoPaymentScreen(totalAmount: totalAmount),
                               ),
                             );
-                             // Sau khi chuyển màn hình, bạn có thể cân nhắc xóa các sản phẩm đã chọn
-                             // hoặc thực hiện sau khi xác nhận thanh toán thành công trên màn hình Momo.
-                             // Ví dụ: cartProvider.removeSelectedItems();
+                            // Sau khi chuyển màn hình, bạn có thể cân nhắc xóa các sản phẩm đã chọn
+                            // hoặc thực hiện sau khi xác nhận thanh toán thành công trên màn hình Momo.
+                            // Ví dụ: cartProvider.removeSelectedItems();
                           } else {
                             // Xử lý thanh toán COD (hiển thị AlertDialog xác nhận)
                             _placeOrder(context, cartProvider, totalAmount);
@@ -356,12 +336,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             'productName': item.product.name,
             'quantity': item.quantity,
             'selectedSize': item.selectedSize,
-            'selectedColor': _getColorName(item.selectedColor), // <--- Đã sử dụng hàm _getColorName ở đây
+            'selectedColor': item.selectedColor, // SỬA LỖI MÀU SẮC: DÙNG TRỰC TIẾP item.selectedColor (là String)
             'pricePerItem': item.product.price,
             'totalPrice': item.product.price * item.quantity,
           }).toList(),
       'subtotal': cartProvider.totalSelectedAmount,
-      'shippingFee': finalTotal - cartProvider.totalSelectedAmount + (cartProvider.totalSelectedAmount >= 300000 ? 0.0 : 19000.0) , // Giả định phí vận chuyển là 19000 nếu tổng dưới 300000
+      // Đảm bảo shippingFee được tính đúng theo logic của bạn.
+      // Tôi đã điều chỉnh lại một chút cho rõ ràng.
+      'shippingFee': finalTotal - cartProvider.totalSelectedAmount + (cartProvider.totalSelectedAmount >= 300000 ? 0.0 : 19000.0),
       'totalAmount': finalTotal,
     };
 

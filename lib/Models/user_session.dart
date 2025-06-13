@@ -1,87 +1,118 @@
-import 'package:flutter/foundation.dart'; // Cần cho ChangeNotifier
-import 'package:intl/intl.dart'; 
+// appquanao/models/user_session.dart
 
+import 'package:flutter/material.dart';
+
+// Đảm bảo bạn có class User của mình.
+// Ví dụ cơ bản về class User:
 class User {
-  final int id;
+  final int id; // Đã thêm 'id' và để kiểu 'int'
   final String email;
-  final String? hoTen; 
-  final String? soDienThoai; 
-  final String? diaChi;
-  final DateTime? ngaySinh; 
-  final String? gioiTinh; 
-  final bool trangThai;
+  final String? hoTen;
+  final String? soDienThoai;
+  final DateTime? ngaySinh; // Đã thêm 'ngaySinh'
+  final String? gioiTinh;
+  final bool? trangThai; // Giả sử API có trả về trạng thái tài khoản
 
   User({
-    required this.id,
+    required this.id, // Yêu cầu 'id' khi tạo User
     required this.email,
     this.hoTen,
     this.soDienThoai,
-    this.diaChi,
     this.ngaySinh,
-    this.gioiTinh, 
-    required this.trangThai,
+    this.gioiTinh,
+    this.trangThai,
   });
 
-  factory User.fromJson(Map<String, dynamic> json) {
-    DateTime? parsedNgaySinh;
-    if (json['ngay_sinh'] != null && (json['ngay_sinh'] as String).isNotEmpty) {
-      try {
-        parsedNgaySinh = DateFormat('yyyy-MM-dd').parse(json['ngay_sinh'] as String);
-      } catch (e) {
-        print("Lỗi khi parse ngay_sinh từ JSON: $e");
-        parsedNgaySinh = null;
-      }
-    }
-
+  // Constructor copy để tạo một đối tượng User mới với các trường được thay đổi.
+  // Điều này là cần thiết vì User là immutable (final fields).
+  User copyWith({
+    int? id, // Cập nhật kiểu dữ liệu của id thành int?
+    String? email,
+    String? hoTen,
+    String? soDienThoai,
+    DateTime? ngaySinh,
+    String? gioiTinh,
+    String? tenDangNhap,
+    bool? trangThai,
+  }) {
     return User(
-      id: json['id'] as int,
-      email: json['email'] as String,
-      hoTen: json['ho_ten'] as String?, 
-      soDienThoai: json['so_dien_thoai'] as String?, 
-      diaChi: json['dia_chi'] as String?,
-      ngaySinh: parsedNgaySinh, 
-      gioiTinh: json['gioi_tinh'] as String?, 
-      trangThai: json['trang_thai'] as bool,
+      id: id ?? this.id, // Đảm bảo gán đúng 'id' hoặc giữ 'this.id'
+      email: email ?? this.email, // Đảm bảo gán đúng 'email' hoặc giữ 'this.email'
+      hoTen: hoTen ?? this.hoTen,
+      soDienThoai: soDienThoai ?? this.soDienThoai,
+      ngaySinh: ngaySinh ?? this.ngaySinh,
+      gioiTinh: gioiTinh ?? this.gioiTinh,
+      trangThai: trangThai ?? this.trangThai,
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'email': email,
-      'ho_ten': hoTen, 
-      'so_dien_thoai': soDienThoai,
-      'dia_chi': diaChi,
-      'ngay_sinh': ngaySinh?.toIso8601String().split('T')[0], 
-      'gioi_tinh': gioiTinh,
-      'trang_thai': trangThai,
-    };
   }
 }
 
-// ĐẢM BẢO LỚP NÀY KẾ THỪA ChangeNotifier
-class UserSession extends ChangeNotifier { 
-  static final UserSession _instance = UserSession._internal();
-
-  factory UserSession() {
-    return _instance;
-  }
-
-  UserSession._internal();
-
-  User? _currentUser; 
+class UserSession with ChangeNotifier {
+  User? _currentUser;
 
   User? get currentUser => _currentUser;
 
-  bool get isLoggedIn => _currentUser != null;
-
-  void setCurrentUser(User user) {
+  void setUser(User? user) {
     _currentUser = user;
-    notifyListeners(); // THÔNG BÁO KHI DỮ LIỆU THAY ĐỔI
+    print('UserSession: setUser called. currentUser is now: ${_currentUser?.hoTen ?? "null"}');
+    notifyListeners(); // Thông báo cho các listeners rằng dữ liệu đã thay đổi
   }
 
   void clearUser() {
     _currentUser = null;
-    notifyListeners(); // THÔNG BÁO KHI DỮ LIỆU THAY ĐỔI
+    notifyListeners(); // Thông báo khi người dùng đăng xuất
+  }
+
+  // --- CÁC PHƯƠNG THỨC UPDATE MỚI CẦN THÊM VÀO ---
+
+  void updateHoTen(String? newHoTen) {
+    if (_currentUser != null) {
+      _currentUser = _currentUser!.copyWith(hoTen: newHoTen);
+      notifyListeners();
+    }
+  }
+
+  void updateSoDienThoai(String? newSoDienThoai) {
+    if (_currentUser != null) {
+      _currentUser = _currentUser!.copyWith(soDienThoai: newSoDienThoai);
+      notifyListeners();
+    }
+  }
+
+  void updateNgaySinh(DateTime? newNgaySinh) {
+    // Đã thêm phương thức update cho ngaySinh
+    if (_currentUser != null) {
+      _currentUser = _currentUser!.copyWith(ngaySinh: newNgaySinh);
+      notifyListeners();
+    }
+  }
+
+  void updateGioiTinh(String? newGioiTinh) {
+    if (_currentUser != null) {
+      _currentUser = _currentUser!.copyWith(gioiTinh: newGioiTinh);
+      notifyListeners();
+    }
+  }
+
+  // Bạn có thể thêm các phương thức update khác nếu cần
+  void updateEmail(String? newEmail) {
+    if (_currentUser != null) {
+      _currentUser = _currentUser!.copyWith(email: newEmail);
+      notifyListeners();
+    }
+  }
+
+  void updateTenDangNhap(String? newTenDangNhap) {
+    if (_currentUser != null) {
+      _currentUser = _currentUser!.copyWith(tenDangNhap: newTenDangNhap);
+      notifyListeners();
+    }
+  }
+
+  void updateTrangThai(bool? newTrangThai) {
+    if (_currentUser != null) {
+      _currentUser = _currentUser!.copyWith(trangThai: newTrangThai);
+      notifyListeners();
+    }
   }
 }

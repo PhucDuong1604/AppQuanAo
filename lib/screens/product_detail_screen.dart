@@ -354,11 +354,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   }
 
                   // Thêm sản phẩm vào giỏ hàng thông qua CartProvider
-                  cartProvider.addItem(
-                    widget.product,
-                    _selectedSize ?? 'N/A', // Truyền size đã chọn (hoặc 'N/A' nếu không có size)
-                    _selectedColorObject ?? Colors.transparent, // Truyền màu đã chọn (hoặc transparent nếu không có màu)
-                  );
+                  //cartProvider.addItem(
+                 //   widget.product,
+                 //   _selectedSize ?? 'N/A', // Truyền size đã chọn (hoặc 'N/A' nếu không có size)
+                 //  _selectedColorObject ?? Colors.transparent, // Truyền màu đã chọn (hoặc transparent nếu không có màu)
+                 // );
 
                   // Hiển thị thông báo đã thêm sản phẩm
                   ScaffoldMessenger.of(context).showSnackBar(

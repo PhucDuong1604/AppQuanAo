@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http; // Import thư viện http
-import 'dart:convert'; // Import để làm việc với JSON
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:provider/provider.dart'; // Import Provider
 
-import 'package:appquanao/screens/home_screen.dart';
+import 'package:appquanao/screens/home_screen.dart'; // Màn hình chính
 import 'package:appquanao/screens/forgot_password_screen.dart';
+import 'package:appquanao/models/user_session.dart'; // Import UserSession
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -14,7 +16,7 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
-  final _passwordController = TextEditingController(); // Đã đổi tên controller cho khớp với PHP API (mat_khau)
+  final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
 
   @override
@@ -27,7 +29,7 @@ class _LoginPageState extends State<LoginPage> {
   // Hàm để gửi dữ liệu đăng nhập đến API
   Future<void> _loginUser() async {
     final String email = _emailController.text;
-    final String matKhau = _passwordController.text; // Lấy mật khẩu từ controller
+    final String matKhau = _passwordController.text;
 
     if (email.isEmpty || matKhau.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -36,17 +38,13 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    // Chuẩn bị dữ liệu để gửi đi
     final Map<String, dynamic> data = {
-      'action': 'login', // Xác định hành động là 'login'
+      'action': 'login',
       'email': email,
-      'mat_khau': matKhau, // Đảm bảo tên trường khớp với API PHP
+      'mat_khau': matKhau,
     };
 
-    // URL của API PHP
-    // Thay thế bằng địa chỉ IP của máy tính của bạn nếu đang chạy trên thiết bị vật lý
-    // hoặc '10.0.2.2' nếu chạy trên emulator Android
-    final Uri uri = Uri.parse('http://10.0.2.2/apiAppQuanAo/api/taikhoan/login.php'); 
+    final Uri uri = Uri.parse('http://10.0.2.2/apiAppQuanAo/api/taikhoan/login.php');
 
     try {
       final response = await http.post(
@@ -61,11 +59,50 @@ class _LoginPageState extends State<LoginPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(responseData['message'])),
           );
-          // Điều hướng về trang chủ và thay thế màn hình đăng nhập
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const HomePage()), // Đảm bảo HomePage được định nghĩa và import
-          );
+
+          // --- PHẦN CẬP NHẬT QUAN TRỌNG NHẤT Ở ĐÂY ---
+          // Thay đổi từ 'user' sang 'data' để khớp với API PHP
+          final userData = responseData['data']; // <<< THAY ĐỔI DÒNG NÀY
+
+          if (userData != null) {
+            // Log dữ liệu nhận được từ API để debug
+            print('Dữ liệu người dùng từ API: $userData');
+
+            final User loggedInUser = User(
+              // Đảm bảo các key sau khớp chính xác với key trong JSON của PHP
+              // Ví dụ: PHP dùng 'id', 'ho_ten', 'so_dien_thoai', 'gioi_tinh', 'trang_thai'
+              id: userData['id'] , // Chú ý ép kiểu int nếu cần
+              email: userData['email'],
+              hoTen: userData['ho_ten'],
+              soDienThoai: userData['so_dien_thoai'],
+              // Giới tính đang là string, bạn cần đảm bảo hàm tạo User chấp nhận string
+              gioiTinh: userData['gioi_tinh'],
+              trangThai: userData['trang_thai'] == 1 || userData['trang_thai'] == true, // Trạng thái có thể là int (1/0) hoặc boolean
+              // Ngày sinh có thể là null, và không có trong response hiện tại của bạn.
+              // Nếu bạn cần ngày sinh, bạn phải thêm nó vào câu SELECT trong PHP và vào response JSON.
+              // Ví dụ: ngaySinh: userData['ngay_sinh'] != null && userData['ngay_sinh'] != ''
+              //             ? DateTime.tryParse(userData['ngay_sinh'])
+              //             : null,
+            );
+
+            // Lấy instance UserSession và cập nhật người dùng
+            Provider.of<UserSession>(context, listen: false).setUser(loggedInUser);
+
+            // Điều hướng đến màn hình chính hoặc ProfileScreen
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const HomePage()),
+              (Route<dynamic> route) => false,
+            );
+
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Dữ liệu người dùng không được trả về từ API hoặc không đúng định dạng.")),
+            );
+            print('Lỗi: Key "data" không chứa dữ liệu người dùng hợp lệ.');
+          }
+          // --- KẾT THÚC PHẦN CẬP NHẬT QUAN TRỌNG ---
+
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(responseData['message'])),
@@ -75,12 +112,14 @@ class _LoginPageState extends State<LoginPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Lỗi server: ${response.statusCode}. Vui lòng thử lại sau.")),
         );
+        print('Lỗi API Status Code: ${response.statusCode}');
+        print('API Response Body: ${response.body}');
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Lỗi kết nối: Không thể kết nối tới máy chủ. Vui lòng kiểm tra kết nối mạng hoặc địa chỉ API.")),
+        const SnackBar(content: Text("Lỗi kết nối: Không thể kết nối tới máy chủ. Vui lòng kiểm tra kết nối mạng hoặc địa chỉ API.")),
       );
-      print("Lỗi kết nối chi tiết: $e"); // In lỗi ra console để debug
+      print("Lỗi kết nối chi tiết: $e");
     }
   }
 
@@ -92,16 +131,13 @@ class _LoginPageState extends State<LoginPage> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              // Ảnh banner đầu trang
               Image.asset(
-                'images/login.jpg', // Đảm bảo bạn có file này trong assets/images/
+                'images/login.jpg',
                 width: double.infinity,
                 height: 300,
                 fit: BoxFit.cover,
               ),
               const SizedBox(height: 20),
-
-              // Email input
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
@@ -111,18 +147,16 @@ class _LoginPageState extends State<LoginPage> {
                     const SizedBox(height: 8),
                     TextField(
                       controller: _emailController,
-                      keyboardType: TextInputType.emailAddress, // Thêm keyboard type
+                      keyboardType: TextInputType.emailAddress,
                       decoration: InputDecoration(
                         hintText: "Email",
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8.0), // Bo tròn góc
+                          borderRadius: BorderRadius.circular(8.0),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14), // Tăng padding để đẹp hơn
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                       ),
                     ),
                     const SizedBox(height: 20),
-
-                    // Password input
                     const Text("Mật khẩu", style: TextStyle(fontSize: 16)),
                     const SizedBox(height: 8),
                     TextField(
@@ -131,9 +165,9 @@ class _LoginPageState extends State<LoginPage> {
                       decoration: InputDecoration(
                         hintText: "Mật khẩu",
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8.0), // Bo tròn góc
+                          borderRadius: BorderRadius.circular(8.0),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14), // Tăng padding
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                         suffixIcon: IconButton(
                           icon: Icon(_isPasswordVisible
                               ? Icons.visibility
@@ -149,19 +183,21 @@ class _LoginPageState extends State<LoginPage> {
                     const SizedBox(height: 10),
                     GestureDetector(
                       onTap: () {
-                          Navigator.push(
+                        Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => const ForgotPasswordScreen(),
                           ),
                         );
                       },
-                      child: const Text(
-                        "Quên mật khẩu?",
-                        style: TextStyle(
-                          color: Colors.blue, // Đổi màu để dễ nhận biết là link
-                          // decoration: TextDecoration.underline, // Có thể thêm gạch chân
-                          fontSize: 14,
+                      child: const Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          "Quên mật khẩu?",
+                          style: TextStyle(
+                            color: Colors.blue,
+                            fontSize: 14,
+                          ),
                         ),
                       ),
                     ),
@@ -169,8 +205,6 @@ class _LoginPageState extends State<LoginPage> {
                   ],
                 ),
               ),
-
-              // Nút đăng nhập
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: ElevatedButton(
@@ -179,15 +213,13 @@ class _LoginPageState extends State<LoginPage> {
                     foregroundColor: Colors.white,
                     minimumSize: const Size.fromHeight(50),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.0), // Bo tròn góc nút
+                      borderRadius: BorderRadius.circular(8.0),
                     ),
                   ),
-                  onPressed: _loginUser, // Gọi hàm đăng nhập khi nhấn nút
+                  onPressed: _loginUser,
                   child: const Text("Đăng nhập", style: TextStyle(fontSize: 16)),
                 ),
               ),
-
-
               const SizedBox(height: 30),
             ],
           ),

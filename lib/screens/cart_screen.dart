@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart'; // <--- Thêm import này
+import 'package:intl/intl.dart';
 import '../models/cart_item.dart';
 import '../providers/cart_provider.dart';
-import '../widgets/cart_item_card.dart';
-import '../screens/CheckoutScreen.dart';
+import '../widgets/cart_item_card.dart'; // Đảm bảo widget này tồn tại và được định nghĩa đúng
+import '../screens/CheckoutScreen.dart'; // Đảm bảo màn hình này tồn tại
 
 class CartScreen extends StatefulWidget {
   const CartScreen({Key? key}) : super(key: key);
@@ -14,49 +14,37 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartScreenState extends State<CartScreen> {
-  bool _selectAll = true; // Trạng thái của checkbox "Chọn tất cả"
+  // Trạng thái của checkbox "Chọn tất cả" - KHÔNG NÊN LÀ STATE CỤC BỘ DỄ DẪN ĐẾN LỖI ĐỒNG BỘ
+  // Thay vào đó, hãy đọc nó trực tiếp từ Provider hoặc dùng Selector.
+  // bool _selectAll = true; // Bỏ biến này nếu bạn muốn đơn giản
 
   @override
   void initState() {
     super.initState();
-    // Đảm bảo trạng thái ban đầu của selectAll khớp với trạng thái thực tế của các item
-    // Nếu có item nào không được chọn, _selectAll sẽ là false
+    // Yêu cầu CartProvider tải giỏ hàng khi màn hình được tạo
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final cartProvider = Provider.of<CartProvider>(context, listen: false);
-      _selectAll = cartProvider.items.every((item) => item.isSelected);
-      setState(() {}); // Cập nhật UI sau khi lấy trạng thái ban đầu
+      cartProvider.fetchCartItems(); // Bắt đầu tải giỏ hàng
+      // _selectAll = cartProvider.items.every((item) => item.isSelected); // Sẽ được tính lại trong build hoặc dùng Selector
+      // setState(() {}); // Không cần setState ở đây nếu bạn đọc trực tiếp từ provider
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Sử dụng Consumer hoặc Provider.of để lắng nghe CartProvider
     final cartProvider = Provider.of<CartProvider>(context);
     final List<CartItem> cartItems = cartProvider.items;
 
-    // Tạo một NumberFormat để định dạng số có dấu phân cách hàng nghìn và đơn vị tiền tệ
+    // Tính trạng thái _selectAll DỰA TRÊN dữ liệu hiện tại của provider
+    // Đây là cách an toàn để tránh setState trong build
+    bool currentSelectAllStatus = cartItems.isNotEmpty && cartItems.every((item) => item.isSelected);
+
     final currencyFormatter = NumberFormat.currency(
-      locale: 'vi_VN', // Đặt locale cho tiếng Việt
-      symbol: 'đ',     // Đơn vị tiền tệ Việt Nam Đồng
-      decimalDigits: 0, // Không hiển thị phần thập phân
+      locale: 'vi_VN',
+      symbol: 'đ',
+      decimalDigits: 0,
     );
-
-    // Cập nhật trạng thái _selectAll nếu tất cả item đều được chọn hoặc không
-    // Điều này giúp checkbox "Chọn tất cả" phản ứng đúng khi người dùng chọn/bỏ chọn từng item
-    if (cartItems.isNotEmpty) {
-      bool currentSelectAllStatus = cartItems.every((item) => item.isSelected);
-      if (_selectAll != currentSelectAllStatus) {
-        // Chỉ cập nhật nếu có sự thay đổi để tránh setState lặp lại không cần thiết
-        // Cảnh báo: Việc setState trong build có thể dẫn đến vòng lặp vô hạn
-        // nếu không được kiểm soát cẩn thận.
-        // Cách tốt hơn là sử dụng Consumer hoặc Selector cho trạng thái này
-        // hoặc gọi nó từ một callback khác.
-        // Để đơn giản ví dụ, tôi đặt ở đây, nhưng cẩn thận với setState trong build.
-        _selectAll = currentSelectAllStatus;
-      }
-    } else {
-      _selectAll = false; // Nếu giỏ hàng trống, không chọn gì cả
-    }
-
 
     return Scaffold(
       appBar: AppBar(
@@ -86,7 +74,7 @@ class _CartScreenState extends State<CartScreen> {
                   const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: () {
-                      Navigator.pop(context);
+                      Navigator.pop(context); // Quay về màn hình trước
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black,
@@ -111,12 +99,9 @@ class _CartScreenState extends State<CartScreen> {
                   child: Row(
                     children: [
                       Checkbox(
-                        value: _selectAll,
+                        value: currentSelectAllStatus, // Sử dụng biến đã tính toán
                         onChanged: (bool? newValue) {
                           if (newValue != null) {
-                            setState(() {
-                              _selectAll = newValue;
-                            });
                             cartProvider.toggleSelectAll(newValue);
                           }
                         },
@@ -138,7 +123,7 @@ class _CartScreenState extends State<CartScreen> {
                         onRemove: () => cartProvider.removeItem(item.product.id, item.selectedSize, item.selectedColor),
                         onQuantityChanged: (newQuantity) =>
                             cartProvider.updateItemQuantity(item.product.id, item.selectedSize, item.selectedColor, newQuantity),
-                        onItemSelected: (isSelected) { // <--- XỬ LÝ SỰ KIỆN CHỌN TỪ CARTITEMCARD
+                        onItemSelected: (isSelected) {
                           cartProvider.toggleItemSelected(item.product.id, item.selectedSize, item.selectedColor);
                         },
                       );
@@ -163,7 +148,7 @@ class _CartScreenState extends State<CartScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                          'Tổng thanh toán\n${currencyFormatter.format(cartProvider.totalSelectedAmount)}', // <--- Đã sử dụng NumberFormat ở đây
+                          'Tổng thanh toán\n${currencyFormatter.format(cartProvider.totalSelectedAmount)}',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 16,
@@ -176,7 +161,6 @@ class _CartScreenState extends State<CartScreen> {
                         onPressed: cartProvider.selectedItems.isEmpty
                             ? null // Vô hiệu hóa nút nếu không có sản phẩm nào được chọn
                             : () {
-                                // Điều hướng đến CheckoutScreen khi nhấn nút "Thanh toán"
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -204,7 +188,4 @@ class _CartScreenState extends State<CartScreen> {
             ),
     );
   }
-
-  // Hàm _processPayment cũ đã được loại bỏ/chuyển logic sang CheckoutScreen
-  // (Bạn có thể giữ lại nếu muốn xử lý các trường hợp khác)
 }

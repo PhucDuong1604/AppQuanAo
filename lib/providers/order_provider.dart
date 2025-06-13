@@ -1,5 +1,5 @@
+import 'package:appquanao/Models/order_model.dart';
 import 'package:flutter/foundation.dart';
-import '../models/order.dart';
 
 class OrderProvider with ChangeNotifier {
   final List<Order> _orders = [];
