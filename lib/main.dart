@@ -6,12 +6,18 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:appquanao/models/user_session.dart'; // Đảm bảo import UserSession
 import 'package:appquanao/screens/login_screen.dart'; // Hoặc màn hình bắt đầu của bạn
+import 'package:appquanao/providers/cart_provider.dart'; // THÊM DÒNG NÀY: Import CartProvider
+import 'package:appquanao/screens/home_screen.dart'; // THÊM DÒNG NÀY: Import HomePage nếu cần
 
 void main() {
   runApp(
-    // Đây là nơi bạn cung cấp UserSession cho toàn bộ ứng dụng
-    ChangeNotifierProvider(
-      create: (context) => UserSession(),
+    // Sử dụng MultiProvider để cung cấp nhiều Providers cho toàn bộ ứng dụng
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => UserSession()),
+        ChangeNotifierProvider(create: (context) => CartProvider()), // THÊM DÒNG NÀY: Cung cấp CartProvider
+        // Thêm các Providers khác của bạn tại đây nếu có
+      ],
       child: const MyApp(),
     ),
   );
@@ -28,16 +34,15 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       // Màn hình khởi đầu của ứng dụng.
-      // Nếu bạn muốn kiểm tra trạng thái đăng nhập ngay khi khởi động,
-      // bạn có thể điều hướng dựa trên UserSession ở đây.
+      // Sử dụng Consumer để truy cập UserSession và quyết định màn hình ban đầu
       home: Consumer<UserSession>(
         builder: (context, userSession, child) {
-          // Nếu có currentUser, đi đến màn hình chính hoặc ProfileScreen
+          // Nếu có currentUser (đã đăng nhập), đi đến màn hình chính hoặc ProfileScreen
           // Ngược lại, đi đến LoginPage
           if (userSession.currentUser != null) {
-            // Ví dụ: Nếu người dùng đã đăng nhập, chuyển đến ProfileScreen
-            // Hoặc chuyển đến Home Screen nếu có
-            return const ProfileScreen(); // Giả sử ProfileScreen là màn hình chính sau đăng nhập
+            // Ví dụ: Nếu người dùng đã đăng nhập, chuyển đến HomePage hoặc ProfileScreen
+            // Dòng này sẽ quyết định màn hình đầu tiên sau khi khởi động app
+            return const HomePage(); // Đổi lại thành HomePage hoặc màn hình chính của bạn
           } else {
             return const LoginPage();
           }
@@ -47,12 +52,11 @@ class MyApp extends StatelessWidget {
       // Định nghĩa các routes khác
       routes: {
         '/login': (context) => const LoginPage(),
-        '/profile': (context) => const ProfileScreen(), // Đảm bảo ProfileScreen có route
+        '/profile': (context) => const ProfileScreen(),
         '/addresses': (context) => const AddressListScreen(),
         '/orders': (context) => OrderListScreen(),
-       '/cart': (context) => const CartScreen(), // Đảm bảo CartScreen được truy cập sau khi Providers đã có
+        '/cart': (context) => const CartScreen(),
         // ... các route khác
-        // Thêm các routes khác của bạn
       },
     );
   }

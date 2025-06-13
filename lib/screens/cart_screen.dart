@@ -3,8 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../models/cart_item.dart';
 import '../providers/cart_provider.dart';
-import '../widgets/cart_item_card.dart'; // Đảm bảo widget này tồn tại và được định nghĩa đúng
-import '../screens/CheckoutScreen.dart'; // Đảm bảo màn hình này tồn tại
+import '../widgets/cart_item_card.dart';
+import '../screens/CheckoutScreen.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({Key? key}) : super(key: key);
@@ -14,30 +14,20 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartScreenState extends State<CartScreen> {
-  // Trạng thái của checkbox "Chọn tất cả" - KHÔNG NÊN LÀ STATE CỤC BỘ DỄ DẪN ĐẾN LỖI ĐỒNG BỘ
-  // Thay vào đó, hãy đọc nó trực tiếp từ Provider hoặc dùng Selector.
-  // bool _selectAll = true; // Bỏ biến này nếu bạn muốn đơn giản
-
   @override
   void initState() {
     super.initState();
-    // Yêu cầu CartProvider tải giỏ hàng khi màn hình được tạo
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final cartProvider = Provider.of<CartProvider>(context, listen: false);
       cartProvider.fetchCartItems(); // Bắt đầu tải giỏ hàng
-      // _selectAll = cartProvider.items.every((item) => item.isSelected); // Sẽ được tính lại trong build hoặc dùng Selector
-      // setState(() {}); // Không cần setState ở đây nếu bạn đọc trực tiếp từ provider
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // Sử dụng Consumer hoặc Provider.of để lắng nghe CartProvider
     final cartProvider = Provider.of<CartProvider>(context);
     final List<CartItem> cartItems = cartProvider.items;
 
-    // Tính trạng thái _selectAll DỰA TRÊN dữ liệu hiện tại của provider
-    // Đây là cách an toàn để tránh setState trong build
     bool currentSelectAllStatus = cartItems.isNotEmpty && cartItems.every((item) => item.isSelected);
 
     final currencyFormatter = NumberFormat.currency(
@@ -74,7 +64,7 @@ class _CartScreenState extends State<CartScreen> {
                   const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: () {
-                      Navigator.pop(context); // Quay về màn hình trước
+                      Navigator.pop(context);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black,
@@ -99,7 +89,7 @@ class _CartScreenState extends State<CartScreen> {
                   child: Row(
                     children: [
                       Checkbox(
-                        value: currentSelectAllStatus, // Sử dụng biến đã tính toán
+                        value: currentSelectAllStatus,
                         onChanged: (bool? newValue) {
                           if (newValue != null) {
                             cartProvider.toggleSelectAll(newValue);
@@ -118,8 +108,26 @@ class _CartScreenState extends State<CartScreen> {
                         Divider(indent: 20, endIndent: 20, color: Colors.grey.shade200),
                     itemBuilder: (context, index) {
                       final item = cartItems[index];
+
+                      // !!!!!!!!!!! THÊM KIỂM TRA AN TOÀN Ở ĐÂY !!!!!!!!!!!
+                      if (item.product.id == 'error_id') {
+                        // Nếu Product là sản phẩm lỗi mặc định, bạn có thể hiển thị một thông báo
+                        // hoặc bỏ qua item này.
+                        debugPrint('Lỗi: Một CartItem có product.id là "error_id". Item: ${item.product.name}');
+                        return Card(
+                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Text(
+                              'Sản phẩm "${item.product.name}" không thể tải thông tin. Vui lòng thử lại.',
+                              style: const TextStyle(color: Colors.red),
+                            ),
+                          ),
+                        );
+                      }
                       return CartItemCard(
                         item: item,
+                        // Ở đây, item.product đã được đảm bảo không phải null hoặc là một Product "error_id"
                         onRemove: () => cartProvider.removeItem(item.product.id, item.selectedSize, item.selectedColor),
                         onQuantityChanged: (newQuantity) =>
                             cartProvider.updateItemQuantity(item.product.id, item.selectedSize, item.selectedColor, newQuantity),

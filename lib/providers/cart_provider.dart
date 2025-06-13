@@ -1,84 +1,61 @@
-import 'package:appquanao/Models/user_session.dart';
+// lib/providers/cart_provider.dart
+
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import '../models/cart_item.dart';
+import '../models/product.dart'; // Đảm bảo import Product
+import 'package:http/http.dart' as http; // Nếu bạn dùng http để fetch cart items
+import 'dart:convert'; // Nếu bạn dùng json.decode
 
-import 'package:appquanao/models/cart_item.dart';
-
-class CartProvider extends ChangeNotifier {
+class CartProvider with ChangeNotifier {
   List<CartItem> _items = [];
-  UserSession? _userSession;
+  bool _isLoading = false; // Thêm trạng thái tải
 
-  List<CartItem> get items => _items;
+  List<CartItem> get items => [..._items]; // Trả về bản sao
+  bool get isLoading => _isLoading;
 
+  // Tổng số lượng sản phẩm trong giỏ hàng
+  int get itemCount {
+    return _items.fold(0, (total, current) => total + current.quantity);
+  }
+
+  // Tổng số tiền của các sản phẩm được chọn
   double get totalSelectedAmount {
-    return _items
-        .where((item) => item.isSelected)
-        .fold(0.0, (sum, item) => sum + (item.product.price * item.quantity));
+    return _items.where((item) => item.isSelected).fold(0.0, (total, current) {
+      double itemPrice = current.product.oldPrice != null && current.product.oldPrice! > 0
+          ? current.product.oldPrice!
+          : current.product.price;
+      return total + (itemPrice * current.quantity);
+    });
   }
 
-  List<CartItem> get selectedItems {
-    return _items.where((item) => item.isSelected).toList();
-  }
-
-  void updateUserInfo(UserSession userSession) {
-    _userSession = userSession;
-    if (_userSession?.currentUser?.id != null && _items.isEmpty) {
-      fetchCartItems();
-    }
-  }
-
+  // Hàm để tải giỏ hàng (giả sử từ API)
   Future<void> fetchCartItems() async {
-    // ... (Giữ nguyên logic fetchCartItems đã có)
-    final userId = _userSession?.currentUser?.id;
-    if (userId == null) {
-      print('CartProvider: Không có User ID để tải giỏ hàng.');
-      _items = [];
-      notifyListeners();
-      return;
-    }
-
-    final Uri uri = Uri.parse('http://10.0.2.2/apiAppQuanAo/api/giohang/giohang.php?nguoi_dung_id=$userId');
-    print('CartProvider: Đang tải giỏ hàng từ: $uri');
+    _isLoading = true;
+    notifyListeners(); // Báo hiệu đang tải
 
     try {
-      final response = await http.get(uri);
-      print('CartProvider: Status Code: ${response.statusCode}');
-      print('CartProvider: Response Body: ${response.body}');
+      // Thay thế bằng URL API giỏ hàng thực tế của bạn
+      final response = await http.get(Uri.parse('http://10.0.2.2/apiAppQuanAo/api/cart_items.php'));
 
       if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
-
-        if (responseData is List) {
-          // Lưu ý: nếu API không trả về is_selected, mặc định isSelected là true trong CartItem.fromJson
-          _items = responseData.map((json) => CartItem.fromJson(json)).toList();
-          print('CartProvider: Đã tải thành công ${_items.length} mặt hàng.');
-        } else if (responseData is Map<String, dynamic> && responseData.containsKey('message')) {
-          _items = [];
-          print('CartProvider: API trả về thông báo: ${responseData['message']}');
-        } else {
-          _items = [];
-          print('CartProvider: Dữ liệu giỏ hàng không hợp lệ: ${response.body}');
-        }
+        final List<dynamic> data = json.decode(response.body);
+        _items = data.map((json) => CartItem.fromJson(json)).toList();
       } else {
-        _items = [];
-        print('CartProvider: Lỗi API khi tải giỏ hàng: ${response.statusCode}');
+        // Xử lý lỗi từ server
+        debugPrint('Failed to load cart items: ${response.statusCode}');
+        _items = []; // Đặt trống nếu có lỗi
       }
     } catch (e) {
-      _items = [];
-      print('CartProvider: Lỗi kết nối khi tải giỏ hàng: $e');
+      debugPrint('Error fetching cart items: $e');
+      _items = []; // Đặt trống nếu có lỗi
     } finally {
-      notifyListeners();
+      _isLoading = false;
+      notifyListeners(); // Báo hiệu đã tải xong
     }
   }
 
-  Future<void> addItem(Product product, String size, String color, int quantity) async {
-    final userId = _userSession?.currentUser?.id;
-    if (userId == null) {
-      print('Không thể thêm vào giỏ hàng: Người dùng chưa đăng nhập.');
-      return;
-    }
-
+  // Thêm một CartItem mới vào giỏ hàng
+  void addItem(Product product, String size, Color color, int quantity) {
     final existingItemIndex = _items.indexWhere(
       (item) =>
           item.product.id == product.id &&
@@ -86,9 +63,11 @@ class CartProvider extends ChangeNotifier {
           item.selectedColor == color,
     );
 
-    if (existingItemIndex != -1) {
+    if (existingItemIndex >= 0) {
+      // Cập nhật số lượng nếu sản phẩm đã tồn tại
       _items[existingItemIndex].quantity += quantity;
     } else {
+      // Thêm mới nếu chưa có
       _items.add(CartItem(
         product: product,
         quantity: quantity,
@@ -96,156 +75,76 @@ class CartProvider extends ChangeNotifier {
         selectedColor: color,
       ));
     }
-
-    await _syncCartToServer(userId, product.id, quantity, size, color, existingItemIndex != -1 ? 'update' : 'add');
-    notifyListeners();
+    notifyListeners(); // Báo hiệu cho các listener cập nhật UI
   }
 
-  Future<void> removeItem(int productId, String size, String color) async {
-    final userId = _userSession?.currentUser?.id;
-    if (userId == null) return;
-
+  // CẬP NHẬT: Thay đổi productId từ int sang String
+  void removeItem(String productId, String selectedSize, Color selectedColor) {
     _items.removeWhere(
       (item) =>
           item.product.id == productId &&
-          item.selectedSize == size &&
-          item.selectedColor == color,
+          item.selectedSize == selectedSize &&
+          item.selectedColor == selectedColor,
     );
-
-    await _syncCartToServer(userId, productId, 0, size, color, 'remove');
     notifyListeners();
   }
 
-  Future<void> updateItemQuantity(int productId, String size, String color, int newQuantity) async {
-    final userId = _userSession?.currentUser?.id;
-    if (userId == null) return;
-
-    if (newQuantity <= 0) {
-      removeItem(productId, size, color);
-      return;
-    }
-
+  // CẬP NHẬT: Thay đổi productId từ int sang String
+  void updateItemQuantity(String productId, String selectedSize, Color selectedColor, int newQuantity) {
     final itemIndex = _items.indexWhere(
       (item) =>
           item.product.id == productId &&
-          item.selectedSize == size &&
-          item.selectedColor == color,
+          item.selectedSize == selectedSize &&
+          item.selectedColor == selectedColor,
     );
 
-    if (itemIndex != -1) {
-      _items[itemIndex].quantity = newQuantity;
-      await _syncCartToServer(userId, productId, newQuantity, size, color, 'update');
+    if (itemIndex >= 0) {
+      if (newQuantity > 0) {
+        _items[itemIndex].quantity = newQuantity;
+      } else {
+        // Nếu số lượng là 0, xóa sản phẩm khỏi giỏ hàng
+        removeItem(productId, selectedSize, selectedColor);
+      }
+      notifyListeners();
     }
-    notifyListeners();
   }
 
-  void toggleItemSelected(int productId, String size, String color) {
+  // CẬP NHẬT: Thay đổi productId từ int sang String
+  void toggleItemSelected(String productId, String selectedSize, Color selectedColor) {
     final itemIndex = _items.indexWhere(
       (item) =>
           item.product.id == productId &&
-          item.selectedSize == size &&
-          item.selectedColor == color,
+          item.selectedSize == selectedSize &&
+          item.selectedColor == selectedColor,
     );
-    if (itemIndex != -1) {
+
+    if (itemIndex >= 0) {
       _items[itemIndex].isSelected = !_items[itemIndex].isSelected;
       notifyListeners();
     }
   }
 
-  void toggleSelectAll(bool select) {
+  void toggleSelectAll(bool selectAll) {
     for (var item in _items) {
-      item.isSelected = select;
+      item.isSelected = selectAll;
     }
     notifyListeners();
   }
 
-  // >>> THÊM PHƯƠNG THỨC NÀY <<<
-  // Xóa các sản phẩm đã được chọn khỏi giỏ hàng (cả trên client và server)
-  Future<void> removeSelectedItems() async {
-    final userId = _userSession?.currentUser?.id;
-    if (userId == null) return;
-
-    final itemsToRemove = _items.where((item) => item.isSelected).toList();
-    if (itemsToRemove.isEmpty) return;
-
-    // Xóa trên server từng item một
-    for (var item in itemsToRemove) {
-      await _syncCartToServer(
-          userId, item.product.id, 0, item.selectedSize, item.selectedColor, 'remove');
-    }
-
-    // Sau khi xóa trên server, cập nhật lại danh sách trên client
-    // Cách an toàn nhất là fetch lại toàn bộ giỏ hàng từ server
-    // Hoặc lọc ra những item không được chọn
-    _items.removeWhere((item) => item.isSelected); // Xóa trên client
-    notifyListeners(); // Thông báo cho UI cập nhật
-    print('Đã xóa ${itemsToRemove.length} sản phẩm đã chọn khỏi giỏ hàng.');
-
-    // Hoặc bạn có thể gọi fetchCartItems() để đảm bảo đồng bộ hoàn toàn
-    // await fetchCartItems();
+  // Các sản phẩm được chọn
+  List<CartItem> get selectedItems {
+    return _items.where((item) => item.isSelected).toList();
   }
 
-  // Xóa toàn bộ giỏ hàng (nếu bạn muốn có chức năng này)
-  Future<void> clearCart() async {
-    final userId = _userSession?.currentUser?.id;
-    if (userId == null) return;
-
-    _items = []; // Xóa trên client
-    // TODO: Gửi yêu cầu API để xóa toàn bộ giỏ hàng trên server (cần API riêng)
-    // Ví dụ: await _syncCartToServer(userId, 0, 0, '', '', 'clear_all');
-    // Hoặc tạo một API riêng chỉ để clear giỏ hàng:
-    final Uri clearUri = Uri.parse('http://10.0.2.2/apiAppQuanAo/api/giohang/sgiohang.php?nguoi_dung_id=$userId');
-     try {
-      final response = await http.post(
-        clearUri,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'user_id': userId, 'action': 'clear_all'}),
-      );
-      if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
-        if (responseData['success']) {
-          print('Xóa toàn bộ giỏ hàng trên server thành công.');
-        } else {
-          print('Xóa toàn bộ giỏ hàng trên server thất bại: ${responseData['message']}');
-        }
-      } else {
-        print('Lỗi server khi xóa toàn bộ giỏ hàng: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Lỗi kết nối khi xóa toàn bộ giỏ hàng: $e');
-    }
+  // Xóa tất cả các sản phẩm đã chọn
+  void removeSelectedItems() {
+    _items.removeWhere((item) => item.isSelected);
     notifyListeners();
   }
 
-
-  Future<void> _syncCartToServer(int userId, int productId, int quantity, String size, String color, String action) async {
-    final Uri uri = Uri.parse('http://10.0.2.2/apiAppQuanAo/api/giohang/giohang.php?nguoi_dung_id=$userId');
-    try {
-      final response = await http.post(
-        uri,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'user_id': userId,
-          'product_id': productId,
-          'quantity': quantity,
-          'size': size,
-          'color': color,
-          'action': action,
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
-        if (responseData['success']) {
-          print('Đồng bộ giỏ hàng thành công: ${responseData['message']}');
-        } else {
-          print('Đồng bộ giỏ hàng thất bại: ${responseData['message']}');
-        }
-      } else {
-        print('Lỗi server khi đồng bộ giỏ hàng: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Lỗi kết nối khi đồng bộ giỏ hàng: $e');
-    }
+  // Xóa toàn bộ giỏ hàng
+  void clearCart() {
+    _items = [];
+    notifyListeners();
   }
 }
