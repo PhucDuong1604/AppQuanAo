@@ -1,76 +1,199 @@
-import 'package:flutter/material.dart';
-
-
+/*import 'package:flutter/foundation.dart'; // Import for debugPrint
 
 class Product {
+  final String id;
+  final String code;
+  final String name;
+  final String imageUrl;
+  final double price;
+  final double? oldPrice; // oldPrice có thể null, nên dùng double?
+  final String description;
+  final String category;
+  final double rating;
+  final int reviewCount;
+  final List<String> sizes;
+  final List<String> colors;
 
- final String id;
- final String name; 
- final String imageUrl;
- final double price; 
- final double? oldPrice;
- final String description;
- final String category; 
- final List<String> sizes;
- final List<String> colors;
- final double rating; 
- final int reviewCount; 
+  Product({
+    required this.id,
+    required this.code,
+    required this.name,
+    required this.imageUrl,
+    required this.price,
+    this.oldPrice, // Không bắt buộc
+    required this.description,
+    required this.category,
+    required this.rating,
+    required this.reviewCount,
+    required this.sizes,
+    required this.colors,
+  });
 
- Product({
+  factory Product.fromJson(Map<String, dynamic> json) {
+    // Debug print để xem dữ liệu JSON của một sản phẩm cụ thể
+    debugPrint('Parsing product JSON: $json');
 
- required this.id,
-required this.name,
- required this.imageUrl,
- required this.price,
- this.oldPrice, 
- required this.description,
- required this.category,
- required this.sizes,
-required this.colors,
- required this.rating,
- required this.reviewCount,
-});
+    // Helper function to safely parse double
+    double _parseDouble(dynamic value) {
+      if (value == null) {
+        return 0.0; // Hoặc giá trị mặc định khác nếu thích
+      }
+      if (value is num) {
+        return value.toDouble();
+      }
+      if (value is String) {
+        // Cố gắng parse chuỗi thành double. Nếu lỗi, trả về 0.0 hoặc ném lỗi tùy ý
+        try {
+          return double.parse(value);
+        } catch (e) {
+          debugPrint('Error parsing double from string "$value": $e');
+          return 0.0; // Fallback value
+        }
+      }
+      return 0.0; // Fallback value for other types
+    }
+
+    // Helper function to safely parse optional double
+    double? _parseOptionalDouble(dynamic value) {
+      if (value == null) {
+        return null;
+      }
+      if (value is num) {
+        return value.toDouble();
+      }
+      if (value is String) {
+        try {
+          return double.parse(value);
+        } catch (e) {
+          debugPrint('Error parsing optional double from string "$value": $e');
+          return null; // Fallback value for optional
+        }
+      }
+      return null; // Fallback value for other types
+    }
+
+    return Product(
+      id: json["id_sanpham"]?.toString() ?? '', // Chắc chắn là String
+      code: json["ma_san_pham"] ?? '',
+      name: json["ten_sanpham"] ?? '',
+      imageUrl: json["hinh_anh"] ?? "https://via.placeholder.com/150",
+      price: _parseDouble(json["gia"]), // Sử dụng helper function
+      oldPrice: _parseOptionalDouble(json["gia_cu"]), // Sử dụng helper function
+      description: json["mo_ta"] ?? '',
+      category: json["category"] ?? "Chưa phân loại",
+      rating: _parseDouble(json["danh_gia"]), // Sử dụng helper function
+      reviewCount: (json["so_luong_danh_gia"] is int)
+          ? json["so_luong_danh_gia"]
+          : int.tryParse(json["so_luong_danh_gia"]?.toString() ?? '0') ?? 0,
+      sizes: (json["kich_thuoc"] is String && json["kich_thuoc"].isNotEmpty)
+          ? json["kich_thuoc"].split(',') // Chắc chắn là List<String>
+          : [],
+      colors: (json["mau_sac"] is String && json["mau_sac"].isNotEmpty)
+          ? json["mau_sac"].split(',') // Chắc chắn là List<String>
+          : [],
+    );
+  }
+}*/
+import 'package:flutter/foundation.dart'; // Import for debugPrint
+import 'package:flutter/material.dart'; // Import for Color if you're using it in Product model
+
+class Product {
+  final String id;
+  final String code;
+  final String name;
+  final String imageUrl;
+  final double price;
+  final double? oldPrice; // oldPrice có thể null, nên dùng double?
+  final String description;
+  final String category;
+  final double rating;
+  final int reviewCount;
+  final List<String> sizes;
+  final List<String> colors; // Vẫn giữ List<String> cho Product model
+
+  Product({
+    required this.id,
+    required this.code,
+    required this.name,
+    required this.imageUrl,
+    required this.price,
+    this.oldPrice, // Không bắt buộc
+    required this.description,
+    required this.category,
+    required this.rating,
+    required this.reviewCount,
+    required this.sizes,
+    required this.colors,
+  });
+
+  factory Product.fromJson(Map<String, dynamic> json) {
+    // Debug print để xem dữ liệu JSON của một sản phẩm cụ thể
+    debugPrint('Parsing product JSON in Product.fromJson: $json');
+
+    // Helper function to safely parse double
+    double _parseDouble(dynamic value) {
+      if (value == null) {
+        return 0.0;
+      }
+      if (value is num) {
+        return value.toDouble();
+      }
+      if (value is String) {
+        try {
+          return double.parse(value);
+        } catch (e) {
+          debugPrint('Error parsing double from string "$value": $e');
+          return 0.0;
+        }
+      }
+      return 0.0;
+    }
+
+    // Helper function to safely parse optional double
+    double? _parseOptionalDouble(dynamic value) {
+      if (value == null) {
+        return null;
+      }
+      if (value is num) {
+        return value.toDouble();
+      }
+      if (value is String) {
+        try {
+          return double.parse(value);
+        } catch (e) {
+          debugPrint('Error parsing optional double from string "$value": $e');
+          return null;
+        }
+      }
+      return null;
+    }
+
+    // Helper function to parse list of strings from a comma-separated string
+    List<String> _parseStringList(dynamic value) {
+      if (value == null) return [];
+      if (value is String) {
+        return value.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+      }
+      return [];
+    }
 
 
-
-factory Product.fromJson(Map<String, dynamic> json) {
-
-// Xử lý an toàn cho kich_thuoc và mau_sac, đảm bảo không null và là List<String>
-final List<String> parsedSizes = (json['kich_thuoc'] as String?)
-?.split(',') // Tách chuỗi theo dấu phẩy
-.map((e) => e.trim()) // Loại bỏ khoảng trắng thừa
-.where((e) => e.isNotEmpty) // Lọc bỏ các chuỗi rỗng
-.toList() ??
-[]; // Nếu null, trả về danh sách rỗng
-final List<String> parsedColors = (json['mau_sac'] as String?)
-?.split(',')
-.map((e) => e.trim())
-.where((e) => e.isNotEmpty)
-.toList() ??
-[];
-return Product(
-
-// id_sanpham: Luôn ép về String và không bao giờ null
-id: json['id_sanpham'].toString(),
-
-// ten_sanpham: Có thể là String hoặc null từ JSON, cung cấp giá trị mặc định
-name: json['ten_sanpham'] as String? ?? 'Tên sản phẩm không xác định',
-// hinh_anh: Có thể là String hoặc null, cung cấp giá trị mặc định
-imageUrl: json['hinh_anh'] as String? ?? 'https://via.placeholder.com/150',
-// gia: Có thể là num hoặc null, cung cấp giá trị mặc định
-price: (json['gia'] as num?)?.toDouble() ?? 0.0,
-// gia_cu: Có thể là num hoặc null, không cung cấp giá trị mặc định vì đã là nullable trong model
-oldPrice: (json['gia_cu'] as num?)?.toDouble(),
-// mo_ta: Có thể là String hoặc null, cung cấp giá trị mặc định
-description: json['mo_ta'] as String? ?? 'Không có mô tả cho sản phẩm này.',
-// category: Có thể là String hoặc null, cung cấp giá trị mặc định
-category: json['category'] as String? ?? 'Chưa phân loại',
-sizes: parsedSizes,
-colors: parsedColors,
-// danh_gia: Có thể là num hoặc null, cung cấp giá trị mặc định
-rating: (json['danh_gia'] as num?)?.toDouble() ?? 0.0,
-// so_luong_danh_gia: Có thể là int hoặc null, cung cấp giá trị mặc định
-reviewCount: (json['so_luong_danh_gia'] as int?) ?? 0,
-);
-}
+    return Product(
+      // Ưu tiên các key từ API giỏ hàng, nếu không có thì dùng các key khác
+      id: json["san_pham_id"]?.toString() ?? json["id_sanpham"]?.toString() ?? '',
+      code: json["ma_san_pham"]?.toString() ?? '',
+      name: json["ten_san_pham"]?.toString() ?? json["ten_sanpham"]?.toString() ?? '', // Sửa key ưu tiên
+      imageUrl: json["anh_chinh_url"]?.toString() ?? json["hinh_anh"]?.toString() ?? "https://placehold.co/150", // Sửa key ưu tiên và fallback URL
+      price: _parseDouble(json["gia"]), // Sử dụng key "gia"
+      oldPrice: _parseOptionalDouble(json["gia_giam"] ?? json["gia_cu"]), // Ưu tiên "gia_giam"
+      description: json["mo_ta"]?.toString() ?? '',
+      category: json["category"]?.toString() ?? "Chưa phân loại",
+      rating: _parseDouble(json["danh_gia"]),
+      reviewCount: (json["so_luong_danh_gia"] is int)
+          ? json["so_luong_danh_gia"]
+          : int.tryParse(json["so_luong_danh_gia"]?.toString() ?? '0') ?? 0,
+      sizes: _parseStringList(json["kich_co"] ?? json["kich_thuoc"]), // Ưu tiên "kich_co"
+      colors: _parseStringList(json["mau_sac"]), // Sử dụng key "mau_sac"
+    );
+  }
 }

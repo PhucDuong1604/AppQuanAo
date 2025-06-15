@@ -1,8 +1,24 @@
-// appquanao/widgets/cart_item_card.dart
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:appquanao/models/cart_item.dart'; // Import CartItem
+
+// Helper function để lấy tên màu từ Color object
+// Đặt hàm này ở đầu file, bên ngoài class CartItemCard
+String _getColorNameFromColor(Color color) {
+  if (color == Colors.red) return 'Đỏ';
+  if (color == Colors.blue) return 'Xanh';
+  if (color == Colors.black) return 'Đen';
+  if (color == Colors.white) return 'Trắng';
+  if (color == Colors.yellow) return 'Vàng';
+  if (color == Colors.grey) return 'Xám';
+  if (color == Colors.orange) return 'Cam';
+  if (color == Colors.purple) return 'Tím';
+  if (color == Colors.brown) return 'Nâu';
+  if (color == Colors.pink) return 'Hồng';
+  if (color == Colors.green) return 'Xanh lá';
+  return 'Không xác định'; // Mặc định cho Colors.transparent hoặc các màu không xác định
+}
 
 class CartItemCard extends StatelessWidget {
   final CartItem item;
@@ -48,13 +64,15 @@ class CartItemCard extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
               color: Colors.grey[200],
+              // Sử dụng DecorationImage nếu có imageUrl, nếu không thì để null
               image: item.product.imageUrl.isNotEmpty
                   ? DecorationImage(
                       image: NetworkImage(item.product.imageUrl),
                       fit: BoxFit.cover,
                     )
-                  : null,
+                  : null, // Không gán DecorationImage nếu imageUrl rỗng
             ),
+            // Hiển thị Icon nếu imageUrl rỗng, nếu không thì không hiển thị gì
             child: item.product.imageUrl.isEmpty
                 ? const Icon(Icons.image_outlined, color: Colors.grey, size: 40)
                 : null,
@@ -73,7 +91,8 @@ class CartItemCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${item.selectedSize} / ${item.selectedColor}',
+                  // SỬA ĐỔI DÒNG NÀY ĐỂ SỬ DỤNG _getColorNameFromColor
+                  '${item.selectedSize} / ${_getColorNameFromColor(item.selectedColor)}',
                   style: TextStyle(color: Colors.grey[600], fontSize: 13),
                 ),
                 const SizedBox(height: 8),

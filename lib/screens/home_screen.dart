@@ -66,14 +66,22 @@ class _HomePageState extends State<HomePage> {
         // Phân tích cú pháp JSON
          List<dynamic> jsonList = json.decode(response.body);
          debugPrint('FULL API Response Body for Products: ${json.encode(jsonList)}'); // THÊM DÒNG NÀY
-        List<Product> fetchedProducts = jsonList.map((json) => Product.fromJson(json)).toList();
-
+       
+         List<Product> fetchedProducts = jsonList.map((json) => Product.fromJson(json)).toList();
         // Giả lập phân loại sản phẩm cho mục đích demo
         // Trong thực tế, API của bạn nên cung cấp các endpoint riêng cho từng loại
         // hoặc thêm trường 'type' vào Product model và lọc ở đây
+        // setState(() {
+        //   featuredProducts = fetchedProducts.where((p) => p.rating >= 4.5).toList();
+        // //  newArrivalProducts = fetchedProducts.where((p) => p.category == 'Áo Sơ mi' || p.category == 'Quần').toList(); // Ví dụ lọc
+        //   flashSaleProducts = fetchedProducts.where((p) => p.oldPrice != null && p.oldPrice! > p.price).toList();
+
+        //   _isLoading = false;
+        // });
+
         setState(() {
           featuredProducts = fetchedProducts.where((p) => p.rating >= 4.5).toList();
-        //  newArrivalProducts = fetchedProducts.where((p) => p.category == 'Áo Sơ mi' || p.category == 'Quần').toList(); // Ví dụ lọc
+          newArrivalProducts = List.from(fetchedProducts); // Hiển thị tất cả sản phẩm là hàng mới về để demo
           flashSaleProducts = fetchedProducts.where((p) => p.oldPrice != null && p.oldPrice! > p.price).toList();
 
           _isLoading = false;

@@ -1,4 +1,3 @@
-import 'package:appquanao/screens/address_list_screen.dart';
 import 'package:appquanao/screens/cart_screen.dart';
 import 'package:appquanao/screens/order_list_screen.dart';
 import 'package:appquanao/screens/profile_screen.dart';
@@ -53,7 +52,6 @@ class MyApp extends StatelessWidget {
       routes: {
         '/login': (context) => const LoginPage(),
         '/profile': (context) => const ProfileScreen(),
-        '/addresses': (context) => const AddressListScreen(),
         '/orders': (context) => OrderListScreen(),
         '/cart': (context) => const CartScreen(),
         // ... các route khác

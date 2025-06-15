@@ -1,10 +1,61 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; 
 import 'package:appquanao/models/product.dart';
 import 'package:appquanao/providers/cart_provider.dart';
 import 'package:appquanao/screens/cart_screen.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
+
+// Hàm helper để chuyển đổi tên màu (String) thành đối tượng Color
+// Đặt hàm này ở ngoài class để có thể tái sử dụng hoặc truy cập dễ dàng.
+Color _getColorFromString(String colorName) {
+  switch (colorName.toLowerCase()) {
+    case 'đỏ':
+      return Colors.red;
+    case 'xanh':
+      return Colors.blue;
+    case 'đen':
+      return Colors.black;
+    case 'trắng':
+      return Colors.white;
+    case 'vàng':
+      return Colors.yellow;
+    case 'xám':
+      return Colors.grey;
+    case 'cam':
+      return Colors.orange;
+    case 'tím':
+      return Colors.purple;
+    case 'nâu':
+      return Colors.brown;
+    case 'hồng':
+      return Colors.pink;
+    case 'xanh lá':
+      return Colors.green;
+    // Thêm các màu khác nếu cần
+    default:
+      // Trả về một màu mặc định nếu không tìm thấy, ví dụ: trong suốt hoặc xám
+      return Colors.transparent; // Hoặc Colors.grey[400]
+  }
+}
+
+// Hàm helper để chuyển đổi đối tượng Color thành tên màu (String)
+// Để hiển thị trong SnackBar hoặc các vị trí khác yêu cầu tên chuỗi.
+String _getColorNameFromColor(Color color) {
+  if (color == Colors.red) return 'Đỏ';
+  if (color == Colors.blue) return 'Xanh';
+  if (color == Colors.black) return 'Đen';
+  if (color == Colors.white) return 'Trắng';
+  if (color == Colors.yellow) return 'Vàng';
+  if (color == Colors.grey) return 'Xám';
+  if (color == Colors.orange) return 'Cam';
+  if (color == Colors.purple) return 'Tím';
+  if (color == Colors.brown) return 'Nâu';
+  if (color == Colors.pink) return 'Hồng';
+  if (color == Colors.green) return 'Xanh lá';
+  return 'Không xác định'; // Mặc định cho Colors.transparent hoặc các màu không xác định
+}
+
 
 class ProductDetailScreen extends StatefulWidget {
   final String productId;
@@ -17,8 +68,8 @@ class ProductDetailScreen extends StatefulWidget {
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   String? _selectedSize;
-  String? _selectedColorName; // Giữ lại để hiển thị thông báo
-  Color? _selectedColorObject; // Đây là đối tượng Color bạn muốn truyền
+  String? _selectedColorName; // Để lưu tên màu (String) từ API
+  Color? _selectedColorObject; // Để lưu đối tượng Color sau khi chuyển đổi
   int _quantity = 1;
   late Future<Product> _productDetailFuture;
   Product? _loadedProduct; // Thêm biến này để lưu trữ sản phẩm đã tải
@@ -34,21 +85,21 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final response = await http.get(Uri.parse('http://10.0.2.2/apiAppQuanAo/api/sanpham/chitietsanpham.php?id=${widget.productId}'));
 
     if (response.statusCode == 200) {
-      final Map<String, dynamic> responseBody = json.decode(response.body); // Đổi tên biến để rõ ràng hơn
+      final Map<String, dynamic> responseBody = json.decode(response.body);
 
-      // Kiểm tra nếu API trả về thành công và có khóa 'data'
       if (responseBody['success'] == true && responseBody['data'] != null) {
-        // Lấy phần dữ liệu sản phẩm thực tế từ khóa 'data'
         final Map<String, dynamic> productData = responseBody['data'];
-        
-        final product = Product.fromJson(productData); // <-- SỬA DÒNG NÀY
+
+        final product = Product.fromJson(productData);
 
         if (mounted) {
           setState(() {
             _loadedProduct = product;
+            // Thiết lập kích thước mặc định nếu có và chưa chọn
             if (product.sizes.isNotEmpty && _selectedSize == null) {
               _selectedSize = product.sizes.first;
             }
+            // Thiết lập màu sắc mặc định nếu có và chưa chọn
             if (product.colors.isNotEmpty && _selectedColorName == null) {
               _selectedColorName = product.colors.first;
               _selectedColorObject = _getColorFromString(_selectedColorName!);
@@ -57,12 +108,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         }
         return product;
       } else {
-        // API trả về success: false hoặc data là null
         String message = responseBody['message'] ?? 'Dữ liệu sản phẩm trống hoặc lỗi từ API.';
         throw Exception(message);
       }
     } else {
-      // Lỗi HTTP status code
       throw Exception('Failed to load product details. Status code: ${response.statusCode}');
     }
   }
@@ -86,16 +135,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             return Center(child: Text('Lỗi: ${snapshot.error}'));
           } else if (snapshot.hasData) {
             final Product product = snapshot.data!;
-            // Dữ liệu đã được gán vào _loadedProduct trong _fetchProductDetails
-            // nên không cần gán lại ở đây.
 
-            // Thêm xử lý lỗi nếu imageUrl rỗng hoặc không hợp lệ
             ImageProvider imageProvider;
             if (product.imageUrl.isNotEmpty && Uri.tryParse(product.imageUrl)?.hasAbsolutePath == true) {
               imageProvider = NetworkImage(product.imageUrl);
             } else {
-              // Sử dụng ảnh placeholder cục bộ nếu URL ảnh không hợp lệ
-              imageProvider = const AssetImage('assets/placeholder.png'); // Thay bằng ảnh placeholder của bạn
+              imageProvider = const AssetImage('assets/placeholder.png');
             }
 
             return SingleChildScrollView(
@@ -107,7 +152,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     width: double.infinity,
                     decoration: BoxDecoration(
                       image: DecorationImage(
-                        image: imageProvider, // Sử dụng imageProvider đã xử lý
+                        image: imageProvider,
                         fit: BoxFit.cover,
                         onError: (exception, stackTrace) {
                           print('Error loading image: $exception');
@@ -138,7 +183,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             Icon(Icons.star, color: Colors.amber[400], size: 20),
                             const SizedBox(width: 5),
                             Text(
-                              // Hiển thị một chữ số thập phân cho đánh giá
                               product.rating.toStringAsFixed(1),
                               style: const TextStyle(
                                 fontSize: 16,
@@ -290,37 +334,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  // Hàm _getColorFromString của bạn
-  Color _getColorFromString(String colorName) {
-    switch (colorName.toLowerCase()) {
-      case 'đỏ':
-        return Colors.red;
-      case 'xanh':
-        return Colors.blue;
-      case 'đen':
-        return Colors.black;
-      case 'trắng':
-        return Colors.white;
-      case 'vàng':
-        return Colors.yellow;
-      case 'xám':
-        return Colors.grey;
-      case 'cam':
-        return Colors.orange;
-      case 'tím':
-        return Colors.purple;
-      case 'nâu':
-        return Colors.brown;
-      case 'hồng':
-        return Colors.pink;
-      case 'xanh lá':
-        return Colors.green;
-      default:
-        // Cân nhắc trả về một màu mặc định rõ ràng hơn nếu màu không xác định
-        return Colors.transparent; // hoặc Colors.grey
-    }
-  }
-
   Widget _buildDetailSection(IconData icon, String title, String content) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 15.0),
@@ -366,13 +379,45 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       child: SafeArea(
         child: Row(
           children: [
-          
-            IconButton(
-              icon: const Icon(Icons.shopping_cart_outlined, size: 28, color: Colors.blueAccent),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const CartScreen()),
+            // Icon giỏ hàng và số lượng sản phẩm trong giỏ
+            Consumer<CartProvider>(
+              builder: (context, cart, child) {
+                return Stack(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.shopping_cart_outlined, size: 28, color: Colors.blueAccent),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const CartScreen()),
+                        );
+                      },
+                    ),
+                    if (cart.itemCount > 0)
+                      Positioned(
+                        right: 5,
+                        top: 5,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Text(
+                            cart.itemCount.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
                 );
               },
             ),
@@ -389,8 +434,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     return;
                   }
 
+                  // Lấy CartProvider
                   final cartProvider = Provider.of<CartProvider>(context, listen: false);
 
+                  // Kiểm tra xem đã chọn kích thước và màu sắc chưa
+                  // Chỉ hiển thị thông báo nếu sản phẩm có tùy chọn đó
                   if (product.sizes.isNotEmpty && _selectedSize == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Vui lòng chọn kích thước')),
@@ -404,16 +452,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     return;
                   }
 
+                  // Thêm sản phẩm vào giỏ hàng
                   cartProvider.addItem(
                     product,
-                    _selectedSize ?? 'N/A',
-                    _selectedColorObject ?? Colors.transparent,
+                    _selectedSize ?? 'N/A', // Sử dụng 'N/A' nếu không có kích thước
+                    _selectedColorObject ?? Colors.transparent, // Sử dụng Colors.transparent nếu không có màu sắc
                     _quantity,
                   );
 
+                  // Hiển thị thông báo thành công
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Đã thêm ${product.name} (Size: ${_selectedSize ?? 'N/A'}, Màu: ${_selectedColorName ?? 'N/A'}) vào giỏ hàng!'),
+                      content: Text('Đã thêm ${product.name} (Size: ${_selectedSize ?? 'N/A'}, Màu: ${_getColorNameFromColor(_selectedColorObject ?? Colors.transparent)}) vào giỏ hàng!'),
                       duration: const Duration(seconds: 2),
                     ),
                   );
