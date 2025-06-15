@@ -33,9 +33,6 @@ class _HomePageState extends State<HomePage> {
   bool _isLoading = true;
   String _errorMessage = '';
 
-  // URL API của bạn
-  // Đảm bảo địa chỉ IP này đúng với địa chỉ IP của máy tính đang chạy XAMPP/WAMPP
-  // Hoặc dùng localhost:80 nếu bạn chạy trên emulator Android
   final String _apiUrl = 'http://10.0.2.2/apiAppQuanAo/api/sanpham/danhsachsanpham.php'; // API lấy tất cả sản phẩm
   // Nếu bạn có các endpoint riêng cho Featured, New Arrivals, Flash Sale, hãy định nghĩa chúng ở đây
   // Ví dụ:
@@ -67,7 +64,8 @@ class _HomePageState extends State<HomePage> {
 
       if (response.statusCode == 200) {
         // Phân tích cú pháp JSON
-        List<dynamic> jsonList = json.decode(response.body);
+         List<dynamic> jsonList = json.decode(response.body);
+         debugPrint('FULL API Response Body for Products: ${json.encode(jsonList)}'); // THÊM DÒNG NÀY
         List<Product> fetchedProducts = jsonList.map((json) => Product.fromJson(json)).toList();
 
         // Giả lập phân loại sản phẩm cho mục đích demo
@@ -554,14 +552,7 @@ class _HomePageState extends State<HomePage> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              TextButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Xem tất cả sản phẩm nổi bật')),
-                  );
-                },
-                child: const Text('Xem tất cả'),
-              ),
+              
             ],
           ),
           const SizedBox(height: 15),

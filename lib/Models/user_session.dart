@@ -1,9 +1,4 @@
-// appquanao/models/user_session.dart
-
 import 'package:flutter/material.dart';
-
-// Đảm bảo bạn có class User của mình.
-// Ví dụ cơ bản về class User:
 class User {
   final int id; // Đã thêm 'id' và để kiểu 'int'
   final String email;

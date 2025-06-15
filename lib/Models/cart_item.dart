@@ -1,4 +1,3 @@
-// lib/models/cart_item.dart
 import 'package:flutter/material.dart';
 import 'package:appquanao/models/product.dart'; // Đảm bảo import Product model của bạn
 
@@ -6,7 +5,7 @@ class CartItem {
   final Product product;
   int quantity;
   final String selectedSize;
-  final Color selectedColor; // Đã thay đổi thành kiểu Color
+  final Color selectedColor;
   bool isSelected;
 
   CartItem({
@@ -18,41 +17,23 @@ class CartItem {
   });
 
   factory CartItem.fromJson(Map<String, dynamic> json) {
-    // Để ý cách chúng ta chuyển 'mau_sac' từ String sang Color
-    // Đảm bảo json['product_info'] tồn tại và là một Map
-    // Nếu không, tạo một Product rỗng hoặc ném lỗi có ý nghĩa
-    Product parsedProduct;
-    if (json.containsKey('product_info') && json['product_info'] is Map<String, dynamic>) {
-      parsedProduct = Product.fromJson(json['product_info'] as Map<String, dynamic>);
-    } else {
-      // Xử lý trường hợp không có product_info hoặc sai định dạng
-      // Bạn có thể log lỗi ở đây hoặc tạo một Product mặc định/rỗng
-      // Ví dụ: log lỗi và dùng một Product mặc định
-      debugPrint('Warning: product_info not found or invalid in CartItem JSON: $json');
-      parsedProduct = Product(
-        id: 'error_id',
-        name: 'Sản phẩm không có sẵn',
-        imageUrl: 'https://via.placeholder.com/150/FF0000/FFFFFF?text=Lỗi', // Ảnh báo lỗi
-        price: 0.0,
-        description: 'Thông tin sản phẩm không thể tải.',
-        category: 'Lỗi',
-        sizes: [],
-        colors: [],
-        rating: 0.0,
-        reviewCount: 0,
-      );
-    }
+    // === SỬA ĐỔI QUAN TRỌNG NHẤT Ở ĐÂY ===
+    // Truyền toàn bộ đối tượng JSON của cart item vào Product.fromJson
+    // vì thông tin sản phẩm nằm trực tiếp trong đó.
+    final Product parsedProduct = Product.fromJson(json);
 
     return CartItem(
       product: parsedProduct,
-      quantity: (json['so_luong'] as int?) ?? 1, // Dùng ?? 1 để tránh null nếu so_luong không có
-      selectedSize: (json['kich_thuoc'] as String?) ?? 'N/A',
-      selectedColor: _getColorFromString((json['mau_sac'] as String?) ?? 'Transparent'), // Fallback màu
-      isSelected: (json['is_selected'] as int?) == 1, // Dùng ?? 1 để mặc định là true nếu không có
+      quantity: (json['so_luong'] as int?) ?? 1,
+      // Sửa từ 'kich_thuoc' thành 'kich_co' để khớp với JSON API
+      selectedSize: (json['kich_co'] as String?) ?? 'N/A',
+      selectedColor: _getColorFromString((json['mau_sac'] as String?) ?? 'Transparent'),
+      // isSelected không có trong JSON, giữ mặc định hoặc quản lý client-side
+      isSelected: true, // Mặc định là true khi được tải (hoặc true nếu bạn muốn bắt đầu từ đó)
+                        // Nếu API có trường is_selected và bạn muốn dùng nó, bạn sẽ thêm logic ở đây
     );
   }
 
-  // Hàm trợ giúp để chuyển đổi String tên màu thành đối tượng Color
   static Color _getColorFromString(String colorName) {
     switch (colorName.toLowerCase()) {
       case 'đỏ': return Colors.red;
@@ -66,11 +47,10 @@ class CartItem {
       case 'nâu': return Colors.brown;
       case 'hồng': return Colors.pink;
       case 'xanh lá': return Colors.green;
-      default: return Colors.transparent; // Màu mặc định nếu không tìm thấy
+      default: return Colors.transparent;
     }
   }
 
-  // Bạn có thể thêm phương thức copyWith nếu cần để tạo bản sao của CartItem
   CartItem copyWith({
     Product? product,
     int? quantity,

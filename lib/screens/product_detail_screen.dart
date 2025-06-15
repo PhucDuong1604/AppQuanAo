@@ -30,28 +30,40 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Future<Product> _fetchProductDetails(String productId) async {
-    // !! Quan trọng: Đảm bảo YOUR_API_BASE_URL là URL API thực tế của bạn !!
-     final response = await http.get(Uri.parse('http://10.0.2.2/apiAppQuanAo/api/chitietsanpham.php?id=${widget.productId}'));
+    print('Đang lấy chi tiết sản phẩm với ID: $productId');
+    final response = await http.get(Uri.parse('http://10.0.2.2/apiAppQuanAo/api/sanpham/chitietsanpham.php?id=${widget.productId}'));
 
     if (response.statusCode == 200) {
-      final Map<String, dynamic> data = json.decode(response.body);
-      final product = Product.fromJson(data);
+      final Map<String, dynamic> responseBody = json.decode(response.body); // Đổi tên biến để rõ ràng hơn
 
-      if (mounted) { // Kiểm tra nếu widget vẫn còn được gắn vào cây widget
-        setState(() {
-          _loadedProduct = product; // Gán sản phẩm đã tải vào biến trạng thái
-          if (product.sizes.isNotEmpty && _selectedSize == null) {
-            _selectedSize = product.sizes.first;
-          }
-          if (product.colors.isNotEmpty && _selectedColorName == null) {
-            _selectedColorName = product.colors.first;
-            _selectedColorObject = _getColorFromString(_selectedColorName!);
-          }
-        });
+      // Kiểm tra nếu API trả về thành công và có khóa 'data'
+      if (responseBody['success'] == true && responseBody['data'] != null) {
+        // Lấy phần dữ liệu sản phẩm thực tế từ khóa 'data'
+        final Map<String, dynamic> productData = responseBody['data'];
+        
+        final product = Product.fromJson(productData); // <-- SỬA DÒNG NÀY
+
+        if (mounted) {
+          setState(() {
+            _loadedProduct = product;
+            if (product.sizes.isNotEmpty && _selectedSize == null) {
+              _selectedSize = product.sizes.first;
+            }
+            if (product.colors.isNotEmpty && _selectedColorName == null) {
+              _selectedColorName = product.colors.first;
+              _selectedColorObject = _getColorFromString(_selectedColorName!);
+            }
+          });
+        }
+        return product;
+      } else {
+        // API trả về success: false hoặc data là null
+        String message = responseBody['message'] ?? 'Dữ liệu sản phẩm trống hoặc lỗi từ API.';
+        throw Exception(message);
       }
-      return product;
     } else {
-      throw Exception('Failed to load product details');
+      // Lỗi HTTP status code
+      throw Exception('Failed to load product details. Status code: ${response.statusCode}');
     }
   }
 
@@ -63,7 +75,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black87),
-       
+        
       ),
       body: FutureBuilder<Product>(
         future: _productDetailFuture,
@@ -76,6 +88,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             final Product product = snapshot.data!;
             // Dữ liệu đã được gán vào _loadedProduct trong _fetchProductDetails
             // nên không cần gán lại ở đây.
+
+            // Thêm xử lý lỗi nếu imageUrl rỗng hoặc không hợp lệ
+            ImageProvider imageProvider;
+            if (product.imageUrl.isNotEmpty && Uri.tryParse(product.imageUrl)?.hasAbsolutePath == true) {
+              imageProvider = NetworkImage(product.imageUrl);
+            } else {
+              // Sử dụng ảnh placeholder cục bộ nếu URL ảnh không hợp lệ
+              imageProvider = const AssetImage('assets/placeholder.png'); // Thay bằng ảnh placeholder của bạn
+            }
+
             return SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -85,10 +107,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     width: double.infinity,
                     decoration: BoxDecoration(
                       image: DecorationImage(
-                        image: NetworkImage(product.imageUrl),
+                        image: imageProvider, // Sử dụng imageProvider đã xử lý
                         fit: BoxFit.cover,
                         onError: (exception, stackTrace) {
-                          // print('Error loading image: $exception');
+                          print('Error loading image: $exception');
                         },
                       ),
                     ),
@@ -116,7 +138,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             Icon(Icons.star, color: Colors.amber[400], size: 20),
                             const SizedBox(width: 5),
                             Text(
-                              '${product.rating}',
+                              // Hiển thị một chữ số thập phân cho đánh giá
+                              product.rating.toStringAsFixed(1),
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -160,6 +183,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           ],
                         ),
                         const SizedBox(height: 20),
+                        // Hiển thị kích thước nếu có
                         if (product.sizes.isNotEmpty) ...[
                           const Text(
                             'Kích thước:',
@@ -200,6 +224,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           ),
                           const SizedBox(height: 20),
                         ],
+                        // Hiển thị màu sắc nếu có
                         if (product.colors.isNotEmpty) ...[
                           const Text(
                             'Màu sắc:',
@@ -265,6 +290,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
+  // Hàm _getColorFromString của bạn
   Color _getColorFromString(String colorName) {
     switch (colorName.toLowerCase()) {
       case 'đỏ':
@@ -290,7 +316,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       case 'xanh lá':
         return Colors.green;
       default:
-        return Colors.transparent;
+        // Cân nhắc trả về một màu mặc định rõ ràng hơn nếu màu không xác định
+        return Colors.transparent; // hoặc Colors.grey
     }
   }
 
@@ -377,7 +404,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     return;
                   }
 
-                  // Đã cập nhật để truyền đúng tham số
                   cartProvider.addItem(
                     product,
                     _selectedSize ?? 'N/A',
