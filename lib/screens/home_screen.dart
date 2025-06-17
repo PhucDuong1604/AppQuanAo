@@ -382,55 +382,7 @@ class _HomePageState extends State<HomePage> {
           end: Alignment.bottomRight,
         ),
       ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.flash_on, color: Colors.red, size: 24),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Flash Sale',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red[700],
-                    ),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.red,
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: const Text(
-                  '02:45:30', // Thời gian này sẽ cần được cập nhật động trong ứng dụng thực tế
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 15),
-          SizedBox(
-            height: 200,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: flashSaleProducts.length,
-              itemBuilder: (context, index) {
-                return _buildFlashSaleItem(flashSaleProducts[index]); // Truyền trực tiếp Product object
-              },
-            ),
-          ),
-        ],
-      ),
+      
     );
   }
 
@@ -580,7 +532,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildProductCard(Product product) { // Nhận Product object
+  var media = MediaQuery.of(context).size;
     return GestureDetector(
+
       onTap: () {
         Navigator.push(
           context,
@@ -610,17 +564,8 @@ class _HomePageState extends State<HomePage> {
               children: [
                 Container(
                   height: 140,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                    image: DecorationImage(
-                      image: NetworkImage(product.imageUrl),
-                      fit: BoxFit.cover,
-                       onError: (exception, stackTrace) {
-                        // Fallback if image fails to load
-                      },
-                    ),
-                  ),
+                  width: media.width,
+                  child:  Image.asset("images/products/${product.imageUrl}"),
                 ),
               
               ],

@@ -41,7 +41,7 @@ class CartItemCard extends StatelessWidget {
       symbol: 'đ',
       decimalDigits: 0,
     );
-
+    var media = MediaQuery.of(context).size;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Row(
@@ -59,23 +59,10 @@ class CartItemCard extends StatelessWidget {
           ),
           // Ảnh sản phẩm
           Container(
-            width: 80,
             height: 80,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              color: Colors.grey[200],
-              // Sử dụng DecorationImage nếu có imageUrl, nếu không thì để null
-              image: item.product.imageUrl.isNotEmpty
-                  ? DecorationImage(
-                      image: NetworkImage(item.product.imageUrl),
-                      fit: BoxFit.cover,
-                    )
-                  : null, // Không gán DecorationImage nếu imageUrl rỗng
-            ),
-            // Hiển thị Icon nếu imageUrl rỗng, nếu không thì không hiển thị gì
-            child: item.product.imageUrl.isEmpty
-                ? const Icon(Icons.image_outlined, color: Colors.grey, size: 40)
-                : null,
+            width: 80,
+            child:  Image.asset("images/products/${item.product.imageUrl}"),
+          
           ),
           const SizedBox(width: 16),
           // Thông tin sản phẩm và điều khiển số lượng

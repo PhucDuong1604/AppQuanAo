@@ -118,6 +118,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    var media = MediaQuery.of(context).size;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Chi tiết sản phẩm'),
@@ -136,11 +137,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           } else if (snapshot.hasData) {
             final Product product = snapshot.data!;
 
-            ImageProvider imageProvider;
+            Image imageProvider;
             if (product.imageUrl.isNotEmpty && Uri.tryParse(product.imageUrl)?.hasAbsolutePath == true) {
-              imageProvider = NetworkImage(product.imageUrl);
+               print('URL ảnh từ API: ${product.imageUrl}'); 
+              imageProvider = Image.asset("images/products/${product.imageUrl}");
             } else {
-              imageProvider = const AssetImage('assets/placeholder.png');
+              imageProvider = Image.asset("images/products/${product.imageUrl}");
             }
 
             return SingleChildScrollView(
@@ -149,8 +151,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 children: [
                   Container(
                     height: 350,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
+                    width: media.width,
+                    /*decoration: BoxDecoration(
                       image: DecorationImage(
                         image: imageProvider,
                         fit: BoxFit.cover,
@@ -158,11 +160,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           print('Error loading image: $exception');
                         },
                       ),
-                    ),
-                    child: Stack(
-                      alignment: Alignment.bottomRight,
-                      children: const [],
-                    ),
+                    ),*/
+                    child: imageProvider,
                   ),
                   Padding(
                     padding: const EdgeInsets.all(16.0),
