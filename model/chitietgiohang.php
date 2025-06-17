@@ -30,4 +30,5 @@ class ChiTietGioHang
             return mysqli_error($this->conn);
         }
     }
+   
 }
